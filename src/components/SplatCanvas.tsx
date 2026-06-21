@@ -103,94 +103,86 @@ export default function SplatCanvas({ splatId, isOpen, showModel }: SplatCanvasP
         });
         viewerRef.current = viewer;
 
-        const baseUrl = window.location.origin;
+        const modelUrls: Record<number, string> = {
+            2: "https://dl.dropboxusercontent.com/scl/fi/20ucx1zr59sgnmzp21cgu/model2.glb?rlkey=ishzd5vnbgz1cwgm65kw30uj3&st=5f076r2u&dl=0"
+        };
+        const splatUrls: Record<number, string> = {
+            1: "https://dl.dropboxusercontent.com/scl/fi/bxept122250lt1h6drdpo/splat1.splat?rlkey=0asjiet4wihak3fjrx78vsagd&st=p70gccc2&raw=1",
+            2: "https://dl.dropboxusercontent.com/scl/fi/rg4e6alq7sj9bx8py96ah/splat2.splat?rlkey=zrqk89869k92uq8drqwxpyhak&st=ik6jtyhn&raw=1"
+        };
 
         // Ladda Splat
-        await viewer.addSplatScene(`${baseUrl}/splat${splatId}.splat`, {
-          splatAlphaRemovalThreshold: 5,
-          showLoadingUI: false,
-          format: GaussianSplats3D.SceneFormat.Splat,
-          onProgress: (raw, msg) => {
-            if (cancelled) return;
-            const pct = Math.max(0, Math.min(100, Math.round(raw <= 1 ? raw * 100 : raw)));
-            setState({ status: "loading", pct, message: msg || `Downloading... ${pct}%` });
-          },
+        await viewer.addSplatScene(splatUrls[splatId], {
+            splatAlphaRemovalThreshold: 5,
+            showLoadingUI: false,
+            format: GaussianSplats3D.SceneFormat.Splat,
+            onProgress: (raw, msg) => {
+                if (cancelled) return;
+                const pct = Math.max(0, Math.min(100, Math.round(raw <= 1 ? raw * 100 : raw)));
+                setState({ status: "loading", pct, message: msg || `Downloading... ${pct}%` });
+            },
         });
 
         if (cancelled) return;
 
-        // Ladda GLB-modell
-        new GLTFLoader().load(
-          `${baseUrl}/model${splatId}.glb`,
-          (gltf) => {
-            if (cancelled) return;
+        // Kolla om det finns en GLB-länk för detta splatId innan vi försöker ladda
+        if (modelUrls[splatId]) {
+            new GLTFLoader().load(
+                modelUrls[splatId], // Hämtar den färdiga Dropbox-länken direkt
+                (gltf) => {
+                    if (cancelled) return;
 
-            const model = gltf.scene;
-            model.visible = showModel;
+                    const model = gltf.scene;
+                    model.visible = showModel;
 
-            // Centrera geometrin i origo (0,0,0)
-            const box = new THREE.Box3().setFromObject(model);
-            const center = box.getCenter(new THREE.Vector3());
-            model.position.sub(center); 
+                    // Centrera geometrin i origo (0,0,0)
+                    const box = new THREE.Box3().setFromObject(model);
+                    const center = box.getCenter(new THREE.Vector3());
+                    model.position.sub(center); 
 
-            // Ge modellen en elegant, mjuk och ljus shading
-            model.traverse((child: any) => {
-            if (child.isMesh) {
-                child.castShadow = true;
-                child.receiveShadow = true;
-                
-                // Om du vill behålla modellens originaltexturer men göra dem mjukare, 
-                // kan du justera det befintliga materialet istället:
-                if (child.material) {
-                child.material.roughness = 0.85; // Högt värde = mattare yta, mjukare reflektioner
-                child.material.metalness = 0.1;  // Lågt värde = mindre hård metallkänsla
-                
-                // Om du helt vill skriva över med en elegant, ljus och mjuk färg (t.ex. arkitektonisk off-white):
-                /*
-                child.material = new THREE.MeshStandardMaterial({
-                    color: 0xEAE8E4,      // Elegant, varmt ljusgrå / off-white
-                    roughness: 0.85,      // Mycket matt yta för mjuka övergångar
-                    metalness: 0.05,      // Minimalt med blänk
-                    side: THREE.DoubleSide
-                });
-                */
-                }
-            }
-            });
+                    // Ge modellen en elegant, mjuk och ljus shading
+                    model.traverse((child: any) => {
+                      if (child.isMesh) {
+                          child.castShadow = true;
+                          child.receiveShadow = true;
+                          
+                          if (child.material) {
+                            child.material.roughness = 0.85; // Högt värde = mattare yta, mjukare reflektioner
+                            child.material.metalness = 0.1;  // Lågt värde = mindre hård metallkänsla
+                          }
+                      }
+                    });
 
-            model.scale.set(1.0, 1.0, 1.0);
-            model.rotation.x += Math.PI;
+                    model.scale.set(1.0, 1.0, 1.0);
+                    model.rotation.x += Math.PI;
 
-            // Lägg till i scenen
-            const targetScene = typeof viewer.getScene === "function" ? viewer.getScene() : (viewer.scene || customScene);
-            targetScene.add(model);
-            glbModelRef.current = model;
+                    // Lägg till i scenen
+                    const targetScene = typeof viewer.getScene === "function" ? viewer.getScene() : (viewer.scene || customScene);
+                    targetScene.add(model);
+                    glbModelRef.current = model;
 
-            console.log("[GLB] Modellen injicerad i scenen.");
+                    console.log("[GLB] Modellen injicerad i scenen.");
 
-            // 💡 FIXEN: Koppla på en extra renderings-loop som tvingar Three.js renderaren
-            // att rita ut scenens vanliga 3D-objekt ovanpå/tillsammans med splatten i varje frame.
-            const renderLoop = () => {
-              if (cancelled) return;
+                    // 💡 Koppla på en extra renderings-loop som tvingar Three.js renderaren
+                    const renderLoop = () => {
+                      if (cancelled) return;
 
-              // Kontrollera om viewern har tillgång till sin interna WebGLRenderer
-              if (viewer.renderer && viewer.camera) {
-                // Tvinga Three.js att inte rensa skärmen (så splatten ligger kvar under)
-                viewer.renderer.autoClear = false;
-                // Rita ut vår scen med lampor och GLB-modell
-                viewer.renderer.render(targetScene, viewer.camera);
-              }
+                      if (viewer.renderer && viewer.camera) {
+                        viewer.renderer.autoClear = false;
+                        viewer.renderer.render(targetScene, viewer.camera);
+                      }
 
-              animationFrameIdRef.current = requestAnimationFrame(renderLoop);
-            };
-            
-            // Starta loopen
-            renderLoop();
-            console.log("[LOOP] Tvingad Three.js renderingsloop startad för externa objekt!");
-          },
-          undefined,
-          (err) => console.error("[GLB-FEL]", err)
-        );
+                      animationFrameIdRef.current = requestAnimationFrame(renderLoop);
+                    };
+                    
+                    // Starta loopen
+                    renderLoop();
+                    console.log("[LOOP] Tvingad Three.js renderingsloop startad för externa objekt!");
+                },
+                undefined,
+                (err) => console.error("[GLB-FEL]", err)
+            );
+        }
 
         setState({ status: "ready" });
         viewer.start();
