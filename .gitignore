@@ -1,0 +1,4 @@
+﻿*.splat
+*.glb
+node_modules/
+.next/
