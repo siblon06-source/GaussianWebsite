@@ -11,13 +11,25 @@ interface SplatCardProps {
   onClick: () => void;
 }
 
+// Vi mappar upp exakt samma länk-lista här som du har i din SplatCanvas 
+// för att veta vilka id:n som faktiskt har en aktiv 3D-fil.
+const activeSplatUrls: Record<number, string> = {
+  1: "https://dl.dropboxusercontent.com/scl/fi/bxept122250lt1h6drdpo/splat1.splat?rlkey=0asjiet4wihak3fjrx78vsagd&raw=1",
+  2: "https://dl.dropboxusercontent.com/scl/fi/rg4e6alq7sj9bx8py96ah/splat2.splat?rlkey=zrqk89869k92uq8drqwxpyhak&raw=1"
+  // Om du lägger till kort 3, 4, 5 osv. i framtiden men inte lägger till en länk här, blir de automatiskt "Not Active".
+};
+
 export default function SplatCard({ id, title, location, year, imgSrc, onClick }: SplatCardProps) {
+  // Kontrollera om detta kort har en giltig länk tilldelad
+  const isActive = !!activeSplatUrls[id];
+
   return (
     <>
       <button
-        onClick={onClick}
-        className="splat-card"
-        aria-label={`Open 3D scan: ${title}`}
+        onClick={isActive ? onClick : undefined} // Stäng av klick-funktionen om inaktiv
+        disabled={!isActive} // Inaktivera knappen i webbläsaren om den inte är aktiv
+        className={`splat-card ${!isActive ? "is-inactive" : ""}`}
+        aria-label={isActive ? `Open 3D scan: ${title}` : `${title} (Not active)`}
         style={{
           display: "block",
           width: "100%",
@@ -25,13 +37,14 @@ export default function SplatCard({ id, title, location, year, imgSrc, onClick }
           background: "none",
           border: "none",
           padding: 0,
-          cursor: "pointer",
+          cursor: isActive ? "pointer" : "not-allowed", // Ändra muspekare till "förbjudet" om inaktiv
           borderRadius: "12px",
           overflow: "hidden",
           position: "relative",
-          backgroundColor: "#111116", // Satt till samma bas som texten för sömlös design
+          backgroundColor: "#111116",
           boxShadow: "0 4px 20px rgba(0, 0, 0, 0.2)",
-          transition: "transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.4s ease", // 💡 Mjuk expansion
+          transition: "transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.4s ease, opacity 0.4s ease",
+          opacity: isActive ? 1 : 0.4, // Gör hela kortet blekt/transparent om inaktivt
         }}
       >
         {/* Image container */}
@@ -48,7 +61,8 @@ export default function SplatCard({ id, title, location, year, imgSrc, onClick }
             style={{ 
               position: "absolute", 
               inset: 0,
-              transition: "transform 0.6s cubic-bezier(0.25, 1, 0.5, 1), filter 0.4s ease" // 💡 Zoom + Ljusstyrka
+              transition: "transform 0.6s cubic-bezier(0.25, 1, 0.5, 1), filter 0.4s ease",
+              filter: isActive ? "none" : "grayscale(100%) brightness(0.6)" // Gör bilden svartvit och mörkare om inaktiv
             }}
           >
             <Image
@@ -85,7 +99,7 @@ export default function SplatCard({ id, title, location, year, imgSrc, onClick }
             gap: "0.4rem",
             background: "rgba(10,10,12,0.6)",
             backdropFilter: "blur(8px)",
-            border: "1px solid rgba(200,169,110,0.25)",
+            border: `1px solid ${isActive ? "rgba(200,169,110,0.25)" : "rgba(239, 68, 68, 0.25)"}`, // Röd ram om inaktiv
             borderRadius: "100px",
             padding: "0.3rem 0.75rem",
           }}>
@@ -93,7 +107,7 @@ export default function SplatCard({ id, title, location, year, imgSrc, onClick }
               width: "6px",
               height: "6px",
               borderRadius: "50%",
-              backgroundColor: "#C8A96E",
+              backgroundColor: isActive ? "#C8A96E" : "#EF4444", // Röd prick om inaktiv
               display: "block",
             }} />
             <span style={{
@@ -101,9 +115,9 @@ export default function SplatCard({ id, title, location, year, imgSrc, onClick }
               fontSize: "0.65rem",
               letterSpacing: "0.12em",
               textTransform: "uppercase",
-              color: "#C8A96E",
+              color: isActive ? "#C8A96E" : "#EF4444", // Röd text om inaktiv
             }}>
-              3D Scan
+              {isActive ? "3D Scan" : "Not Active"}
             </span>
           </div>
         </div>
@@ -121,7 +135,7 @@ export default function SplatCard({ id, title, location, year, imgSrc, onClick }
             fontSize: "0.7rem",
             letterSpacing: "0.14em",
             textTransform: "uppercase",
-            color: "#C8A96E",
+            color: isActive ? "#C8A96E" : "#5A5A66", // Nedtonad text om inaktiv
             marginBottom: "0.4rem",
             fontWeight: 500,
           }}>
@@ -132,7 +146,7 @@ export default function SplatCard({ id, title, location, year, imgSrc, onClick }
             fontSize: "clamp(1rem, 1.5vw, 1.2rem)",
             fontWeight: 600,
             letterSpacing: "-0.02em",
-            color: "#F0EDE8",
+            color: isActive ? "#F0EDE8" : "#6A6A76", // Nedtonad titel om inaktiv
             marginBottom: "0.75rem",
             lineHeight: 1.2,
           }}>
@@ -142,42 +156,44 @@ export default function SplatCard({ id, title, location, year, imgSrc, onClick }
             display: "flex",
             alignItems: "center",
             gap: "0.5rem",
-            color: "#8A8A96",
+            color: isActive ? "#8A8A96" : "#4A4A56",
           }}>
             <span style={{
               fontFamily: "'Inter', sans-serif",
               fontSize: "0.75rem",
               letterSpacing: "0.06em",
             }}>
-              View in 3D
+              {isActive ? "View in 3D" : "Offline"}
             </span>
-            <svg 
-              className="card-arrow"
-              width="14" height="14" viewBox="0 0 14 14" fill="none"
-              style={{ transition: "transform 0.3s ease" }} // 💡 Pil-animation
-            >
-              <path d="M2.5 7h9M8 3.5l3.5 3.5L8 10.5" stroke="#C8A96E" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            {isActive && (
+              <svg 
+                className="card-arrow"
+                width="14" height="14" viewBox="0 0 14 14" fill="none"
+                style={{ transition: "transform 0.3s ease" }}
+              >
+                <path d="M2.5 7h9M8 3.5l3.5 3.5L8 10.5" stroke="#C8A96E" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
           </div>
         </div>
       </button>
 
-      {/* 💡 EFFEKTER VID HOVER (MUSPEKARE) */}
+      {/* CSS-stilar – Notera tillägget :not(.is-inactive) */}
       <style>{`
-        /* Skala upp kortet och lägg till en snygg glöd/skugga */
-        .splat-card:hover {
+        /* Skala bara upp kortet om det faktiskt är aktivt */
+        .splat-card:not(.is-inactive):hover {
           transform: translateY(-4px) scale(1.02);
           box-shadow: 0 12px 30px rgba(200, 169, 110, 0.1);
         }
 
-        /* Zooma in bilden något och gör den lite ljusare/mer levande */
-        .splat-card:hover .card-img {
+        /* Zooma bara in bilden om kortet är aktivt */
+        .splat-card:not(.is-inactive):hover .card-img {
           transform: scale(1.06);
           filter: brightness(1.15) contrast(1.05);
         }
 
         /* Skjut pilen lite snyggt åt höger */
-        .splat-card:hover .card-arrow {
+        .splat-card:not(.is-inactive):hover .card-arrow {
           transform: translateX(4px);
         }
       `}</style>
