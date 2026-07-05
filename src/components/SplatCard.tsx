@@ -14,10 +14,10 @@ interface SplatCardProps {
 // Vi mappar upp exakt samma länk-lista här som du har i din SplatCanvas 
 // för att veta vilka id:n som faktiskt har en aktiv 3D-fil.
 const activeSplatUrls: Record<number, string> = {
-  1: "https://dl.dropboxusercontent.com/scl/fi/bxept122250lt1h6drdpo/splat1.splat?rlkey=0asjiet4wihak3fjrx78vsagd&raw=1",
-  2: "https://dl.dropboxusercontent.com/scl/fi/rg4e6alq7sj9bx8py96ah/splat2.splat?rlkey=zrqk89869k92uq8drqwxpyhak&raw=1",
-  3: "https://dl.dropboxusercontent.com/scl/fi/ygob2d544ytcwom8xtcf8/splat3.splat?rlkey=g3djlhl34ahbhjcgn4btidfbj&st=bah16ypn&raw=1"
-  // Om du lägger till kort 3, 4, 5 osv. i framtiden men inte lägger till en länk här, blir de automatiskt "Not Active".
+  1: "https://dl.dropboxusercontent.com/scl/fi/bxept122250lt1h6drdpo/splat1.splat?rlkey=0asjiet4wihak3fjrx78vsagd&st=p70gccc2&raw=1",
+  2: "https://dl.dropboxusercontent.com/scl/fi/rg4e6alq7sj9bx8py96ah/splat2.splat?rlkey=zrqk89869k92uq8drqwxpyhak&st=ik6jtyhn&raw=1",
+  3: "https://dl.dropboxusercontent.com/scl/fi/j3x2z72wwm3n6kfmbg4e7/splat3?rlkey=rme7dhyfnhntt8itlphxyy25y&st=t02k3571&raw=1"
+  // Både dl.dropboxusercontent.com och &raw=1 på slutet här med!
 };
 
 export default function SplatCard({ id, title, location, year, imgSrc, onClick }: SplatCardProps) {
