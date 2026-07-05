@@ -15,7 +15,8 @@ interface SplatCardProps {
 // för att veta vilka id:n som faktiskt har en aktiv 3D-fil.
 const activeSplatUrls: Record<number, string> = {
   1: "https://dl.dropboxusercontent.com/scl/fi/bxept122250lt1h6drdpo/splat1.splat?rlkey=0asjiet4wihak3fjrx78vsagd&raw=1",
-  2: "https://dl.dropboxusercontent.com/scl/fi/rg4e6alq7sj9bx8py96ah/splat2.splat?rlkey=zrqk89869k92uq8drqwxpyhak&raw=1"
+  2: "https://dl.dropboxusercontent.com/scl/fi/rg4e6alq7sj9bx8py96ah/splat2.splat?rlkey=zrqk89869k92uq8drqwxpyhak&raw=1",
+  3: "https://www.dropbox.com/scl/fi/j3x2z72wwm3n6kfmbg4e7/splat3?rlkey=rme7dhyfnhntt8itlphxyy25y&st=04cu7jwt&raw=1"
   // Om du lägger till kort 3, 4, 5 osv. i framtiden men inte lägger till en länk här, blir de automatiskt "Not Active".
 };
 
