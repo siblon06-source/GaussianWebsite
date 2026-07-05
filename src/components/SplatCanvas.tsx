@@ -109,7 +109,8 @@ export default function SplatCanvas({ splatId, isOpen, showModel }: SplatCanvasP
         const splatUrls: Record<number, string> = {
             1: "https://dl.dropboxusercontent.com/scl/fi/bxept122250lt1h6drdpo/splat1.splat?rlkey=0asjiet4wihak3fjrx78vsagd&st=p70gccc2&raw=1",
             2: "https://dl.dropboxusercontent.com/scl/fi/rg4e6alq7sj9bx8py96ah/splat2.splat?rlkey=zrqk89869k92uq8drqwxpyhak&st=ik6jtyhn&raw=1",
-            3: "https://dl.dropboxusercontent.com/scl/fi/ygob2d544ytcwom8xtcf8/splat3.splat?rlkey=g3djlhl34ahbhjcgn4btidfbj&st=bah16ypn&raw=1"
+            3: "https://dl.dropboxusercontent.com/scl/fi/ygob2d544ytcwom8xtcf8/splat3.splat?rlkey=g3djlhl34ahbhjcgn4btidfbj&st=bah16ypn&raw=1",
+            4: "https://dl.dropboxusercontent.com/scl/fi/oyld9wt5ay3qffcvz4m5e/splat4.splat?rlkey=jts6rml7ac6ekdiqsa05nz2kg&st=e4lgujkn&raw=1"
         };
 
         // Ladda Splat
