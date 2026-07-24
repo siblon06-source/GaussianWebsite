@@ -97,7 +97,8 @@ export default function SplatCanvas({ splatId, isOpen, showModel }: SplatCanvasP
         viewerRef.current = viewer;
 
         const modelUrls: Record<number, string> = {
-            2: "https://dl.dropboxusercontent.com/scl/fi/20ucx1zr59sgnmzp21cgu/model2.glb?rlkey=ishzd5vnbgz1cwgm65kw30uj3&st=5f076r2u&dl=0"
+            2: "https://dl.dropboxusercontent.com/scl/fi/20ucx1zr59sgnmzp21cgu/model2.glb?rlkey=ishzd5vnbgz1cwgm65kw30uj3&st=5f076r2u&dl=0",
+            5: "https://dl.dropboxusercontent.com/scl/fi/f36xvb6bzguvxfjxyoew0/model5.glb?rlkey=ok2bt2v52mw479hhxkrq7u4mq&st=q7y17eyz&dl=0"
         };
         const splatUrls: Record<number, string> = {
             1: "https://dl.dropboxusercontent.com/scl/fi/bxept122250lt1h6drdpo/splat1.splat?rlkey=0asjiet4wihak3fjrx78vsagd&st=p70gccc2&raw=1",
