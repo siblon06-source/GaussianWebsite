@@ -16,11 +16,25 @@ type LoadState =
 export default function SplatCanvas({ splatId, isOpen, showModel }: SplatCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
-  const glbModelRef = useRef<any>(null);
+  const glbModelRef = useRef<any>(null); // Pekar nu på vår pivotGroup
   const customSceneRef = useRef<any>(null);
   const THREERef = useRef<any>(null);
   const animationFrameIdRef = useRef<number | null>(null); 
   const [state, setState] = useState<LoadState>({ status: "loading", pct: 0, message: "Loading 3D scan..." });
+
+  // State för modellens position och skala med dina nya standardvärden
+  const [transform, setTransform] = useState({
+    x: 0.7,
+    y: 0.1,
+    z: -0.1,
+    scale: 0.15,
+  });
+
+  // Nollställ till standardvärdena när splatId ändras
+  useEffect(() => {
+    setTransform({ x: 0.7, y: 0.1, z: -0.1, scale: 0.15 });
+  }, [splatId]);
+
 
   // Funktion för att flytta kameran till CAD-modellens centrum
   const teleportCameraToModel = () => {
@@ -59,6 +73,88 @@ export default function SplatCanvas({ splatId, isOpen, showModel }: SplatCanvasP
     }
   }, [showModel]);
 
+  // Applicera transformering (Lokal förflyttning & skalning kring centrum)
+  useEffect(() => {
+    if (glbModelRef.current) {
+      const group = glbModelRef.current;
+
+      // 1. Skala gruppen kring sitt eget origin
+      group.scale.set(transform.scale, transform.scale, transform.scale);
+
+      // 2. Nollställ positionen i världscenen först
+      group.position.set(0, 0, 0);
+
+      // 3. Flytta i LOKALT led!
+      group.translateX(transform.x);
+      group.translateY(transform.y);
+      group.translateZ(transform.z);
+    }
+  }, [transform]);
+
+  // Tangentbordskontroll (Piltangenter m.m.)
+  useEffect(() => {
+    const STEP = 0.02; // Mindre steglängd för finjustering
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!glbModelRef.current) return;
+
+      // Lägg till de tangenter du vill fånga upp
+      const keysToIntercept = [
+        "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight",
+        "w", "W", "s", "S", "+", "=", "-"
+      ];
+
+      if (keysToIntercept.includes(e.key)) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+
+      setTransform((prev) => {
+        let { x, y, z, scale } = prev;
+
+        switch (e.key) {
+          // Lokalt Sidled (X)
+          case "ArrowLeft":
+            x -= STEP;
+            break;
+          case "ArrowRight":
+            x += STEP;
+            break;
+
+          // Lokalt Djup / Fram & Bak (Z)
+          case "ArrowUp":
+            z -= STEP;
+            break;
+          case "ArrowDown":
+            z += STEP;
+            break;
+
+          // Lokalt Höjdled (Y) – Nu styrs höjden även av + och - !
+          case "w":
+          case "W":
+          case "+":
+          case "=":
+            y += STEP;
+            break;
+          case "s":
+          case "S":
+          case "-":
+            y -= STEP;
+            break;
+
+          default:
+            return prev;
+        }
+
+        return { x, y, z, scale };
+      });
+    };
+
+    window.addEventListener("keydown", handleKeyDown, { capture: true });
+    return () => window.removeEventListener("keydown", handleKeyDown, { capture: true });
+  }, []);
+
+  // Ladda scenen och 3D-modellen
   useEffect(() => {
     if (!isOpen) return;
 
@@ -130,8 +226,8 @@ export default function SplatCanvas({ splatId, isOpen, showModel }: SplatCanvasP
                     if (cancelled) return;
 
                     const model = gltf.scene;
-                    model.visible = showModel;
 
+                    // Centrera geometrin manuellt kring origin
                     const box = new THREE.Box3().setFromObject(model);
                     const center = box.getCenter(new THREE.Vector3());
                     model.position.sub(center); 
@@ -151,10 +247,15 @@ export default function SplatCanvas({ splatId, isOpen, showModel }: SplatCanvasP
                     model.scale.set(1.0, 1.0, 1.0);
                     model.rotation.x += Math.PI;
 
-                    targetScene.add(model);
-                    glbModelRef.current = model;
+                    // Skapa en pivot-grupp som omsluter modellen
+                    const pivotGroup = new THREE.Group();
+                    pivotGroup.add(model);
+                    pivotGroup.visible = showModel;
 
-                    console.log("[GLB] Modellen injicerad i scenen.");
+                    targetScene.add(pivotGroup);
+                    glbModelRef.current = pivotGroup;
+
+                    console.log("[GLB] Modellen injicerad i scenen via pivotGroup.");
 
                     const renderLoop = () => {
                       if (cancelled) return;
@@ -200,27 +301,44 @@ export default function SplatCanvas({ splatId, isOpen, showModel }: SplatCanvasP
 
     return () => {
       cancelled = true;
+
       if (animationFrameIdRef.current) {
         cancelAnimationFrame(animationFrameIdRef.current);
       }
-      
-      if (viewerRef.current) {
-        const viewer = viewerRef.current;
-        const THREE = THREERef.current;
-        const targetScene = typeof viewer.getScene === "function" ? viewer.getScene() : (viewer.scene || customSceneRef.current);
-        
+
+      const viewer = viewerRef.current;
+      const THREE = THREERef.current;
+
+      if (viewer) {
+        const targetScene =
+          typeof viewer.getScene === "function"
+            ? viewer.getScene()
+            : viewer.scene || customSceneRef.current;
+
         if (targetScene && THREE && glbModelRef.current) {
-          try { targetScene.remove(glbModelRef.current); } catch {}
+          try {
+            targetScene.remove(glbModelRef.current);
+          } catch (e) {}
         }
-        
-        try { viewer.dispose(); } catch (e) {}
+
+        try {
+          if (typeof viewer.dispose === "function") {
+            viewer.dispose();
+          }
+        } catch (e) {
+          console.warn("[VIEWER DISPOSE WARN]", e);
+        }
+
         viewerRef.current = null;
-        glbModelRef.current = null;
-        customSceneRef.current = null;
       }
 
+      glbModelRef.current = null;
+      customSceneRef.current = null;
+
       if (containerRef.current) {
-        containerRef.current.innerHTML = "";
+        while (containerRef.current.firstChild) {
+          containerRef.current.removeChild(containerRef.current.firstChild);
+        }
       }
     };
   }, [splatId, isOpen]);
@@ -253,6 +371,121 @@ export default function SplatCanvas({ splatId, isOpen, showModel }: SplatCanvasP
 
       {state.status === "ready" && (
         <>
+          {/* 🎛️ KONTROLLPANEL – Syns alltid när scenen är redo */}
+          <div
+            style={{
+              position: "absolute",
+              top: "1rem",
+              left: "1rem",
+              zIndex: 30,
+              background: "rgba(13, 13, 18, 0.85)",
+              backdropFilter: "blur(8px)",
+              border: "1px solid rgba(200, 169, 110, 0.2)",
+              borderRadius: "8px",
+              padding: "0.85rem 1rem",
+              color: "#F0EDE8",
+              fontSize: "0.75rem",
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.6rem",
+              width: "230px",
+              boxShadow: "0 8px 20px rgba(0,0,0,0.4)"
+            }}
+          >
+            <div style={{ color: "#C8A96E", fontWeight: "bold", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+              CAD Transformation
+            </div>
+
+            {/* Skalning */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", color: "#8A8A96", fontSize: "0.7rem" }}>
+                <span>Skala</span>
+                <span style={{ color: "#F0EDE8" }}>{transform.scale.toFixed(2)}x</span>
+              </div>
+              <input
+                type="range"
+                min="0.02"
+                max="1.5"
+                step="0.02"
+                value={transform.scale}
+                onChange={(e) => setTransform((p) => ({ ...p, scale: parseFloat(e.target.value) }))}
+                style={{ width: "100%", accentColor: "#C8A96E", cursor: "pointer" }}
+              />
+            </div>
+
+            <div style={{ height: "1px", background: "rgba(255,255,255,0.08)", margin: "0.1rem 0" }} />
+
+            {/* X-position (Sidled) */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", color: "#8A8A96", fontSize: "0.7rem" }}>
+                <span>Position X (Sidled)</span>
+                <span style={{ color: "#F0EDE8" }}>{transform.x.toFixed(2)}m</span>
+              </div>
+              <input
+                type="range"
+                min="-5.0"
+                max="5.0"
+                step="0.02"
+                value={transform.x}
+                onChange={(e) => setTransform((p) => ({ ...p, x: parseFloat(e.target.value) }))}
+                style={{ width: "100%", accentColor: "#C8A96E", cursor: "pointer" }}
+              />
+            </div>
+
+            {/* Y-position (Höjdled) */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", color: "#8A8A96", fontSize: "0.7rem" }}>
+                <span>Position Y (Höjd)</span>
+                <span style={{ color: "#F0EDE8" }}>{transform.y.toFixed(2)}m</span>
+              </div>
+              <input
+                type="range"
+                min="-5.0"
+                max="5.0"
+                step="0.02"
+                value={transform.y}
+                onChange={(e) => setTransform((p) => ({ ...p, y: parseFloat(e.target.value) }))}
+                style={{ width: "100%", accentColor: "#C8A96E", cursor: "pointer" }}
+              />
+            </div>
+
+            {/* Z-position (Fram / Bak) */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", color: "#8A8A96", fontSize: "0.7rem" }}>
+                <span>Position Z (Djup)</span>
+                <span style={{ color: "#F0EDE8" }}>{transform.z.toFixed(2)}m</span>
+              </div>
+              <input
+                type="range"
+                min="-5.0"
+                max="5.0"
+                step="0.02"
+                value={transform.z}
+                onChange={(e) => setTransform((p) => ({ ...p, z: parseFloat(e.target.value) }))}
+                style={{ width: "100%", accentColor: "#C8A96E", cursor: "pointer" }}
+              />
+            </div>
+
+            {/* Återställningsknapp */}
+            <button
+              onClick={() => setTransform({ x: 0.7, y: 0.1, z: -0.1, scale: 0.15 })}
+              style={{
+                marginTop: "0.2rem",
+                padding: "0.3rem",
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: "4px",
+                color: "#8A8A96",
+                fontSize: "0.65rem",
+                cursor: "pointer",
+                transition: "all 0.2s ease"
+              }}
+            >
+              🔄 Återställ Position
+            </button>
+          </div>
+
+          {/* 🎯 Teleport-knapp */}
           <button
             onClick={teleportCameraToModel}
             style={{
@@ -275,6 +508,7 @@ export default function SplatCanvas({ splatId, isOpen, showModel }: SplatCanvasP
             🎯 Teleport Camera to CAD
           </button>
 
+          {/* ℹ️ Instruktionstext */}
           <div style={{ position: "absolute", bottom: "1.5rem", left: "50%", transform: "translateX(-50%)", display: "flex", gap: "0.5rem", zIndex: 5, opacity: 0.5, fontSize: "0.65rem", letterSpacing: "0.08em", color: "#8A8A96", textTransform: "uppercase", pointerEvents: "none" }}>
             Drag to rotate &bull; Scroll to zoom
           </div>
