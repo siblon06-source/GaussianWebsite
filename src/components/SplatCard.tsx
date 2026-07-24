@@ -17,7 +17,8 @@ const activeSplatUrls: Record<number, string> = {
   1: "https://dl.dropboxusercontent.com/scl/fi/bxept122250lt1h6drdpo/splat1.splat?rlkey=0asjiet4wihak3fjrx78vsagd&st=p70gccc2&raw=1",
   2: "https://dl.dropboxusercontent.com/scl/fi/rg4e6alq7sj9bx8py96ah/splat2.splat?rlkey=zrqk89869k92uq8drqwxpyhak&st=ik6jtyhn&raw=1",
   3: "https://dl.dropboxusercontent.com/scl/fi/j3x2z72wwm3n6kfmbg4e7/splat3?rlkey=rme7dhyfnhntt8itlphxyy25y&st=t02k3571&raw=1",
-  4: "https://dl.dropboxusercontent.com/scl/fi/oyld9wt5ay3qffcvz4m5e/splat4.splat?rlkey=jts6rml7ac6ekdiqsa05nz2kg&st=e4lgujkn&raw=1"
+  4: "https://dl.dropboxusercontent.com/scl/fi/oyld9wt5ay3qffcvz4m5e/splat4.splat?rlkey=jts6rml7ac6ekdiqsa05nz2kg&st=e4lgujkn&raw=1",
+  5: "https://dl.dropboxusercontent.com/scl/fi/h1bhffphfzpd2y5ps9pya/splat5.ply?rlkey=y1fqw6x5umo63bso9a04f5d4l&st=3a05eanl&raw=1"
   // Både dl.dropboxusercontent.com och &raw=1 på slutet här med!
 };
 
